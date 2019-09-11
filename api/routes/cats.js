@@ -4,6 +4,11 @@ const mongoose = require('mongoose')
 
 const Cats = require('../models/cats')
 
+const handleError = (error, res, code) => {
+  console.error(error)
+  res.status(code).json(error)
+}
+
 router.get('/', (req, res, next) => {
   Cats.find()
     .exec()
@@ -11,12 +16,8 @@ router.get('/', (req, res, next) => {
       console.log(cats)
       res.status(200).json(cats)
     })
-    .catch(error => {
-      console.error(error)
-      res.status(500).json({error})
-    })
+    .catch(error => { handleError(error, res, 500) })
 })
-
 
 router.post('/', (req, res, next) => {
   const newCat = new Cats({
@@ -32,10 +33,7 @@ router.post('/', (req, res, next) => {
         newCat
       })
     })
-    .catch(error => {
-      console.log(error)
-      res.status(500).json({error})
-    })
+    .catch(error => { handleError(error, res, 500) })
 })
 
 router.get('/:catID', (req, res, next) => {
@@ -47,22 +45,21 @@ router.get('/:catID', (req, res, next) => {
       if (obj) {
         res.status(200).json(obj)
       } else {
-        res.status(404).json({message: `cat id not found: ${id}`})
+        handleError({message: `cat id not found: ${id}`}, res, 404)
       }
     })
-    .catch(error => {
-      console.error(error)
-      res.status(500)
-        .json({error})
-    })
+    .catch(error => { handleError(error, res, 500) })
 })
 
-router.patch(":/catID", (req, res, next) => {
-  // const _id = req.params.catID
-  // Cats.update({_id}, {$set: {...req.body}})
-  res.status(200).json({
-    message: 'ok'
-  })
+router.patch("/:catID", (req, res, next) => {
+  const _id = req.params.catID
+  Cats.updateOne({_id}, {$set: {...req.body}})
+    .exec()
+    .then(obj => {
+      console.log(obj)
+      res.status(200).json(obj)
+    })
+    .catch(error => { handleError(error, res, 500) })
 })
 
 router.delete("/:catID", (req, res, next) => {
@@ -71,18 +68,18 @@ router.delete("/:catID", (req, res, next) => {
     .exec()
     .then(result => {
       if (result.deletedCount === 0) {
-        res.status(404).json({
-          message: `could not delete cat with id: ${_id}`
-        })
+        handleError(
+          {message: `could not delete cat with id: ${_id}`},
+          res,
+          404
+        )
       } else {
         res.status(200).json({
           message: `successfully deleted cat with id: ${_id}`
         })
       }
     })
-    .catch(error => {
-      res.status(500).json({error})
-    })
+    .catch(error => { handleError(error, res, 500) })
 })
 
 module.exports = router
